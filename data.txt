@@ -1,0 +1,14 @@
+demandePanel(4).
+panel(2500,1220).
+
+perteHorizontale(10).
+perteVerticale(4).
+
+nombreType(6).
+type(1,600,420,4).
+type(2,300,420,16).
+type(3,205,420,4).
+type(4,600,300,16).
+type(5,205,300,32).
+type(6,800,205,12).
+

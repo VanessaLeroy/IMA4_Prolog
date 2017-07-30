@@ -1,0 +1,296 @@
+:-use_module(library(clpfd)).	        % librairie pour le solveur
+:-use_module(library(lists)).           % librairie pour les listes
+
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+%		           RESOLUTION DU PROBLEME
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+
+% Le prédicat problemeDecoupe(CoupesH,CoupesHorizontales,CoupesV,CoupesVerticales)
+% permet de trouver toutes les découpes possibles satisfaisant les
+% contraintes du problème (sans les disponibilités)
+problemeDecoupe :-
+	% Lire le fichier de données
+	consult('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/data.txt'),
+
+	% Ecrire le plan de coupe horizontal dans le fichier
+	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',write,Stream),
+
+	% Recherche des plans de découpe
+	forall(
+		decoupeHorizontale(Coupes,CoupesHorizontales),
+	        (
+		   transformationCoupes(Coupes,CoupesHorizontales,PlanHorizontal),
+
+		% Pour toutes les valeurs de PlanHorizontal
+		  forall(
+		       plan(PlanHorizontal,PlanVertical),
+		      ( % On sauvegarde dans le fichier
+			    verification(PlanVertical,[],[],[]) -> (
+				    ecrire_Debut,
+				    ecrire_PlanHorizontal(PlanHorizontal),
+			            couper(PlanVertical,[]),
+				    ecrire_Fin
+								   )
+			   );(true)
+			     )
+	        )
+	      ),
+	close(Stream).
+
+%Construit le plan de découpe verticale (mais sans prendre en compte la
+%limitation à 2 plans possibles)
+plan([],[]).
+plan([Hauteur|PlanHorizontal],L) :-
+	plan(PlanHorizontal,L1),
+	decoupeVerticale(Hauteur,PlanVertical),
+	append(PlanVertical,[0],L2),
+	append(L2,L1,L).
+
+% Vérifie la liste Xs afin qu'elle ne prenne que 2 plans de coupe
+verification([],[],_,_).
+verification([X|Xs],L,P1,P2) :-
+	X==0 -> ( % On a un plan de coupe
+
+		% 1. C'est le premier plan trouvé
+		P1 == [] -> (
+			    verification(Xs,[],L,P2)
+			     );(
+	        P1 == L -> (
+			    verification(Xs,[],L,P2)
+			     );(
+		P2 == [] -> (
+			    verification(Xs,[],P1,L)
+			     );(
+		P2 == L -> (
+			    verification(Xs,[],P1,L)
+			     )
+			       )))
+		);( % On passe à l'élément suivant
+		append(L,[X],L1),
+		verification(Xs,L1,P1,P2)
+		).
+
+% Coupe la liste en plusieurs partie
+couper([],[]).
+couper([X|Xs],L) :-
+	X==0 -> ( % On écrit la liste
+	          ecrire_PlanVertical(L),
+		  couper(Xs,[])
+
+		);( % On complète L avec X
+		  append(L,[X],L1),
+		  couper(Xs,L1)
+		  ).
+
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+%			      DECOUPE HORIZONTALE
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+
+% Le prédicat decoupeHorizontale(Coupes,CoupesHorizontales) renvoie dans
+% Coupes la liste des dimensions possibles et dans CoupesHorizontales
+% le plan de coupe possible selon Coupes
+decoupeHorizontale(Coupes,CoupesHorizontales) :-
+	% INITIALISATION : Création de la liste de toutes les dimensions possibles
+	nombreType(Nb),
+
+	length(L1, Nb),
+	creationListeTotalSize1(L1, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+
+	length(L2, Nb),
+	creationListeTotalSize2(L2, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+
+	append(L1,L2,L),
+	sort(L, Coupes),		% Prédicat supprimant les doublons et triant la liste par ordre croissant
+
+	length(Coupes,N),		% Prédicat permettant de savoir la longueur de notre liste 'Coupes'
+	length(CoupesHorizontales,N),	% Prédicat permettant de créer une liste de longueur
+
+	% CONTRAINTES :
+	CoupesHorizontales ins 0..3,	% Contrainte du nombre de coupes : 3 coupes de même dimension maximum
+
+	% Y : Dimension horizontale maximum
+	panel(_,Y),
+	% Perte : Dimension horizontale minimum
+	perteHorizontale(P),
+	Perte is Y-(P rdiv 100)*Y,
+
+	% Contrainte du non-dépassement du panel
+	scalar_product(Coupes,CoupesHorizontales, #=<,Y),
+
+	% Contrainte de perte
+	scalar_product(Coupes,CoupesHorizontales, #>=,Perte),
+
+	% Liste toutes les solutions possibles
+	labeling([],CoupesHorizontales).
+
+% Prédicat creationListeTotalSize1(L,N) ajoute la dimension size1 du
+% type N dans L
+creationListeTotalSize1([],_).
+creationListeTotalSize1([A|Xs], N) :-
+	type(N,X,_,_),
+	A is X,
+	NN is N+1,
+	creationListeTotalSize1(Xs, NN).
+
+% Prédicat creationListeTotalSize2(L,N) ajoute la dimension size2 du
+% type N dans L
+creationListeTotalSize2([],_).
+creationListeTotalSize2([A|Xs], N) :-
+	type(N,_,X,_),
+	A is X,
+	NN is N+1,
+	creationListeTotalSize2(Xs, NN).
+
+
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+%			      DECOUPE VERTICALE
+% ------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------
+
+decoupeVerticale(Hauteur,PlanVertical) :-
+	% Initialisation de Coupes
+	listeCoupesV(Hauteur,Coupes),
+
+	%NE PAS DEPASSER LE PANNEAU
+	length(Coupes,N),
+	length(CoupesVerticales,N),
+
+	%Rendre entière les valeurs de NbCoupes
+	CoupesVerticales ins 0..3,
+
+	panel(X,_),
+	perteVerticale(P),
+	Perte is X-(P rdiv 100)*X,
+
+	scalar_product(Coupes,CoupesVerticales, #=<,X),
+	scalar_product(Coupes,CoupesVerticales, #>=,Perte),
+
+	labeling([],CoupesVerticales),
+	transformationCoupes(Coupes,CoupesVerticales,PlanVertical).
+
+listeCoupesV(Hauteur,Coupes) :-
+	nombreType(Nb),
+
+	% Traitement de size1
+	length(L1, Nb),
+	creationListeTotalSize1(L1, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	nombreOccurence(L1,Hauteur,N1),
+	length(L11,N1),
+	creationListeSize1(1,Hauteur,L11),
+
+	% Traitement de size2
+	length(L2, Nb),
+	creationListeTotalSize2(L2, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	nombreOccurence(L2,Hauteur,N2),
+	length(L22,N2),
+	creationListeSize2(1,Hauteur,L22),
+
+	append(L11,L22,L),
+	sort(L,Coupes).
+
+nombreOccurence([],_,0).
+nombreOccurence([A|Ls],Hauteur,N) :-
+	A==Hauteur ->(
+		      nombreOccurence(Ls,Hauteur,N1),
+		     N is N1+1
+		     );(
+		       nombreOccurence(Ls,Hauteur,N)
+		     ).
+
+creationListeSize1(_,_,[]).
+creationListeSize1(N,Hauteur,[A|Ls]) :-
+	type(N,X,Y,_),
+	X==Hauteur -> (
+		       A is Y,
+		       N1 is N+1,
+		       creationListeSize1(N1,Hauteur,Ls)
+		      );(
+		       N1 is N+1,
+		       creationListeSize1(N1,Hauteur,[A|Ls])
+		      ).
+
+creationListeSize2(_,_,[]).
+creationListeSize2(N,Hauteur,[A|Ls]) :-
+	type(N,Y,X,_),
+	X==Hauteur -> (
+		       A is Y,
+		       N1 is N+1,
+		       creationListeSize2(N1,Hauteur,Ls)
+		      );(
+		       N1 is N+1,
+		       creationListeSize2(N1,Hauteur,[A|Ls])
+		      ).
+
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
+% SIMPLIFICATION
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
+transformationCoupes([],[],[]).
+transformationCoupes([A|CoupesH],[B|CoupesHorizontales],DecoupeH):-
+	B==0-> (
+	      transformationCoupes(CoupesH,CoupesHorizontales,DecoupeH)
+	       );(
+	       B==1 -> (
+			transformationCoupes(CoupesH,CoupesHorizontales,L),
+			append([A],L,DecoupeH)
+		        );(
+		        B==2 -> (
+				  transformationCoupes(CoupesH,CoupesHorizontales,L),
+				  append([A,A],L,DecoupeH)
+				);(
+				   transformationCoupes(CoupesH,CoupesHorizontales,L),
+				   append([A,A,A],L,DecoupeH)
+				  )
+			  )
+		 ).
+
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
+% ECRIRE DANS LE FICHIER DE COUPES
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
+
+ecrire_Debut :-
+	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	write(Stream,'coupe('),
+	close(Stream).
+
+ecrire_PlanHorizontal(PlanHorizontal) :-
+	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	write(Stream,PlanHorizontal),
+	close(Stream).
+
+ecrire_PlanVertical(PlanVertical) :-
+	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	write(Stream,','), % afin de mettre les solutions de chaque découpe horizontale
+	write(Stream,PlanVertical),
+	close(Stream).
+
+ecrire_Fin :-
+	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	write(Stream,').'),
+	nl(Stream),
+	close(Stream).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
