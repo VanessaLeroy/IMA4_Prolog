@@ -1,3 +1,4 @@
+% Ajout des librairies 
 :-use_module(library(clpfd)).	        % librairie pour le solveur
 :-use_module(library(lists)).           % librairie pour les listes
 
@@ -7,17 +8,17 @@
 % ------------------------------------------------------------------------------
 % ------------------------------------------------------------------------------
 
-% Le prédicat problemeDecoupe(CoupesH,CoupesHorizontales,CoupesV,CoupesVerticales)
-% permet de trouver toutes les découpes possibles satisfaisant les
-% contraintes du problème (sans les disponibilités)
+% Le prÃ©dicat problemeDecoupe(CoupesH,CoupesHorizontales,CoupesV,CoupesVerticales)
+% permet de trouver toutes les dÃ©coupes possibles satisfaisant les
+% contraintes du problÃ¨me (sans les disponibilitÃ©s)
 problemeDecoupe :-
-	% Lire le fichier de données
+	% Lire le fichier de donnÃ©es
 	consult('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/data.txt'),
 
 	% Ecrire le plan de coupe horizontal dans le fichier
 	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',write,Stream),
 
-	% Recherche des plans de découpe
+	% Recherche des plans de dÃ©coupe
 	forall(
 		decoupeHorizontale(Coupes,CoupesHorizontales),
 	        (
@@ -39,8 +40,8 @@ problemeDecoupe :-
 	      ),
 	close(Stream).
 
-%Construit le plan de découpe verticale (mais sans prendre en compte la
-%limitation à 2 plans possibles)
+% Construit le plan de dÃ©coupe verticale (mais sans prendre en compte la
+% limitation Ã  2 plans possibles)
 plan([],[]).
 plan([Hauteur|PlanHorizontal],L) :-
 	plan(PlanHorizontal,L1),
@@ -48,12 +49,12 @@ plan([Hauteur|PlanHorizontal],L) :-
 	append(PlanVertical,[0],L2),
 	append(L2,L1,L).
 
-% Vérifie la liste Xs afin qu'elle ne prenne que 2 plans de coupe
+% VÃ©rifie la liste Xs afin qu'elle ne prenne que 2 plans de coupe
 verification([],[],_,_).
 verification([X|Xs],L,P1,P2) :-
 	X==0 -> ( % On a un plan de coupe
 
-		% 1. C'est le premier plan trouvé
+		% 1. C'est le premier plan trouvÃ©
 		P1 == [] -> (
 			    verification(Xs,[],L,P2)
 			     );(
@@ -67,19 +68,19 @@ verification([X|Xs],L,P1,P2) :-
 			    verification(Xs,[],P1,L)
 			     )
 			       )))
-		);( % On passe à l'élément suivant
+		);( % On passe Ã  l'Ã©lÃ©ment suivant
 		append(L,[X],L1),
 		verification(Xs,L1,P1,P2)
 		).
 
-% Coupe la liste en plusieurs partie
+% Coupe la liste en plusieurs parties
 couper([],[]).
 couper([X|Xs],L) :-
-	X==0 -> ( % On écrit la liste
+	X==0 -> ( % On Ã©crit la liste
 	          ecrire_PlanVertical(L),
 		  couper(Xs,[])
 
-		);( % On complète L avec X
+		);( % On complÃ¨te L avec X
 		  append(L,[X],L1),
 		  couper(Xs,L1)
 		  ).
@@ -90,27 +91,27 @@ couper([X|Xs],L) :-
 % ------------------------------------------------------------------------------
 % ------------------------------------------------------------------------------
 
-% Le prédicat decoupeHorizontale(Coupes,CoupesHorizontales) renvoie dans
+% Le prÃ©dicat decoupeHorizontale(Coupes,CoupesHorizontales) renvoie dans
 % Coupes la liste des dimensions possibles et dans CoupesHorizontales
 % le plan de coupe possible selon Coupes
 decoupeHorizontale(Coupes,CoupesHorizontales) :-
-	% INITIALISATION : Création de la liste de toutes les dimensions possibles
+	% INITIALISATION : CrÃ©ation de la liste de toutes les dimensions possibles
 	nombreType(Nb),
 
 	length(L1, Nb),
-	creationListeTotalSize1(L1, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	creationListeTotalSize1(L1, 1),		% PrÃ©dicat permettant de crÃ©er la liste suivant toutes les dimensions possibles (avec doublons)
 
 	length(L2, Nb),
-	creationListeTotalSize2(L2, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	creationListeTotalSize2(L2, 1),		% PrÃ©dicat permettant de crÃ©er la liste suivant toutes les dimensions possibles (avec doublons)
 
 	append(L1,L2,L),
-	sort(L, Coupes),		% Prédicat supprimant les doublons et triant la liste par ordre croissant
+	sort(L, Coupes),		% PrÃ©dicat supprimant les doublons et triant la liste par ordre croissant
 
-	length(Coupes,N),		% Prédicat permettant de savoir la longueur de notre liste 'Coupes'
-	length(CoupesHorizontales,N),	% Prédicat permettant de créer une liste de longueur
+	length(Coupes,N),		% PrÃ©dicat permettant de savoir la longueur de notre liste 'Coupes'
+	length(CoupesHorizontales,N),	% PrÃ©dicat permettant de crÃ©er une liste de longueur
 
 	% CONTRAINTES :
-	CoupesHorizontales ins 0..3,	% Contrainte du nombre de coupes : 3 coupes de même dimension maximum
+	CoupesHorizontales ins 0..3,	% Contrainte du nombre de coupes : 3 coupes de mÃªme dimension maximum
 
 	% Y : Dimension horizontale maximum
 	panel(_,Y),
@@ -118,7 +119,7 @@ decoupeHorizontale(Coupes,CoupesHorizontales) :-
 	perteHorizontale(P),
 	Perte is Y-(P rdiv 100)*Y,
 
-	% Contrainte du non-dépassement du panel
+	% Contrainte du non-dÃ©passement du panel
 	scalar_product(Coupes,CoupesHorizontales, #=<,Y),
 
 	% Contrainte de perte
@@ -127,7 +128,7 @@ decoupeHorizontale(Coupes,CoupesHorizontales) :-
 	% Liste toutes les solutions possibles
 	labeling([],CoupesHorizontales).
 
-% Prédicat creationListeTotalSize1(L,N) ajoute la dimension size1 du
+% PrÃ©dicat creationListeTotalSize1(L,N) ajoute la dimension size1 du
 % type N dans L
 creationListeTotalSize1([],_).
 creationListeTotalSize1([A|Xs], N) :-
@@ -136,7 +137,7 @@ creationListeTotalSize1([A|Xs], N) :-
 	NN is N+1,
 	creationListeTotalSize1(Xs, NN).
 
-% Prédicat creationListeTotalSize2(L,N) ajoute la dimension size2 du
+% PrÃ©dicat creationListeTotalSize2(L,N) ajoute la dimension size2 du
 % type N dans L
 creationListeTotalSize2([],_).
 creationListeTotalSize2([A|Xs], N) :-
@@ -160,7 +161,7 @@ decoupeVerticale(Hauteur,PlanVertical) :-
 	length(Coupes,N),
 	length(CoupesVerticales,N),
 
-	%Rendre entière les valeurs de NbCoupes
+	%Rendre entiÃ¨re les valeurs de NbCoupes
 	CoupesVerticales ins 0..3,
 
 	panel(X,_),
@@ -178,14 +179,14 @@ listeCoupesV(Hauteur,Coupes) :-
 
 	% Traitement de size1
 	length(L1, Nb),
-	creationListeTotalSize1(L1, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	creationListeTotalSize1(L1, 1),		% PrÃ©dicat permettant de crÃ©er la liste suivant toutes les dimensions possibles (avec doublons)
 	nombreOccurence(L1,Hauteur,N1),
 	length(L11,N1),
 	creationListeSize1(1,Hauteur,L11),
 
 	% Traitement de size2
 	length(L2, Nb),
-	creationListeTotalSize2(L2, 1),		% Prédicat permettant de créer la liste suivant toutes les dimensions possibles (avec doublons)
+	creationListeTotalSize2(L2, 1),		% PrÃ©dicat permettant de crÃ©er la liste suivant toutes les dimensions possibles (avec doublons)
 	nombreOccurence(L2,Hauteur,N2),
 	length(L22,N2),
 	creationListeSize2(1,Hauteur,L22),
@@ -257,23 +258,23 @@ transformationCoupes([A|CoupesH],[B|CoupesHorizontales],DecoupeH):-
 % ----------------------------------------------------------------------
 
 ecrire_Debut :-
-	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	open('I:/Programmation par contraintes/ProjetProlog/output.txt',append,Stream),
 	write(Stream,'coupe('),
 	close(Stream).
 
 ecrire_PlanHorizontal(PlanHorizontal) :-
-	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	open('I:/Programmation par contraintes/ProjetProlog/output.txt',append,Stream),
 	write(Stream,PlanHorizontal),
 	close(Stream).
 
 ecrire_PlanVertical(PlanVertical) :-
-	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
-	write(Stream,','), % afin de mettre les solutions de chaque découpe horizontale
+	open('I:/Programmation par contraintes/ProjetProlog/output.txt',append,Stream),
+	write(Stream,','), % afin de mettre les solutions de chaque dÃ©coupe horizontale
 	write(Stream,PlanVertical),
 	close(Stream).
 
 ecrire_Fin :-
-	open('I:/Programmation par contraintes/Marc, Sophie, Laura, Vanessa - ProjetProlog/output.txt',append,Stream),
+	open('I:/Programmation par contraintes/ProjetProlog/output.txt',append,Stream),
 	write(Stream,').'),
 	nl(Stream),
 	close(Stream).
